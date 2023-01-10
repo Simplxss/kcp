@@ -30,6 +30,8 @@ pub enum Error {
     UserBufTooBig,
     #[error("user's recv buffer is too small")]
     UserBufTooSmall,
+    #[error("token mismatch: {0} != {1}")]
+    TokenMismatch(u32, u32),
 }
 
 fn make_io_error<T>(kind: ErrorKind, msg: T) -> io::Error
@@ -53,6 +55,7 @@ impl From<Error> for io::Error {
             Error::UnsupportedCmd(..) => ErrorKind::Other,
             Error::UserBufTooBig => ErrorKind::Other,
             Error::UserBufTooSmall => ErrorKind::Other,
+            Error::TokenMismatch(_, _) => ErrorKind::Other,
         };
 
         make_io_error(kind, err)
