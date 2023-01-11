@@ -11,11 +11,11 @@ mod kcp;
 
 /// The `KCP` prelude
 pub mod prelude {
-    pub use super::{get_conv, Kcp};
+    pub use super::{get_conv, get_token, Kcp};
 }
 
 pub use error::Error;
-pub use kcp::{get_conv, get_sn, set_conv, Kcp};
+pub use kcp::{get_conv, get_token, get_sn, set_conv, Kcp};
 
 /// KCP result
 pub type KcpResult<T> = Result<T, Error>;
