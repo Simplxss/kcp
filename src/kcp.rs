@@ -53,9 +53,15 @@ pub fn set_conv(mut buf: &mut [u8], conv: u32) {
 }
 
 /// Get `sn` from raw buffer
+pub fn get_token(buf: &[u8]) -> u32 {
+    assert!(buf.len() >= KCP_OVERHEAD as usize);
+    (&buf[4..]).get_u32_le()
+}
+
+/// Get `sn` from raw buffer
 pub fn get_sn(buf: &[u8]) -> u32 {
     assert!(buf.len() >= KCP_OVERHEAD as usize);
-    (&buf[12..]).get_u32_le()
+    (&buf[16..]).get_u32_le()
 }
 
 #[inline]
