@@ -866,6 +866,7 @@ impl<Output: Write> Kcp<Output> {
 
         let mut segment = KcpSegment {
             conv: self.conv,
+            token: self.token,
             cmd: KCP_CMD_ACK,
             wnd: self.wnd_unused(),
             una: self.rcv_nxt,
