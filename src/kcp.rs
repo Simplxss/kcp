@@ -145,7 +145,7 @@ impl KcpSegment {
 }
 
 #[derive(Default)]
-pub struct KcpOutput<O: Write>(O);
+pub struct KcpOutput<O>(O);
 
 impl<O: Write> Write for KcpOutput<O> {
     #[inline]
