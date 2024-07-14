@@ -48,27 +48,15 @@ const KCP_PROBE_LIMIT: u32 = 120000; // up to 120 secs to probe window
 const KCP_FASTACK_LIMIT: u32 = 5; // max times to trigger fastack
 
 /// Read `conv` from raw buffer
-pub fn get_conv(mut buf: &[u8]) -> u32 {
+pub fn get_conv(buf: &[u8]) -> u32 {
     assert!(buf.len() >= KCP_OVERHEAD as usize);
-    buf.get_u32_le()
-}
-
-/// Set `conv` to raw buffer
-pub fn set_conv(mut buf: &mut [u8], conv: u32) {
-    assert!(buf.len() >= KCP_OVERHEAD as usize);
-    buf.put_u32_le(conv)
+    (&buf[0..]).get_u32_le()
 }
 
 /// Get `token` from raw buffer
 pub fn get_token(buf: &[u8]) -> u32 {
     assert!(buf.len() >= KCP_OVERHEAD as usize);
     (&buf[4..]).get_u32_le()
-}
-
-/// Get `sn` from raw buffer
-pub fn get_sn(buf: &[u8]) -> u32 {
-    assert!(buf.len() >= KCP_OVERHEAD as usize);
-    (&buf[16..]).get_u32_le()
 }
 
 #[inline]
@@ -197,14 +185,14 @@ impl<O: AsyncWrite + Unpin> AsyncWrite for KcpOutput<O> {
 pub struct Kcp<Output> {
     /// Conversation ID
     conv: u32,
+    /// Token for certain anime game
+    token: u32,
     /// Maximum Transmission Unit
     mtu: usize,
     /// Maximum Segment Size
     mss: usize,
     /// Connection state
     state: i32,
-    /// Token for certain anime game
-    token: u32,
 
     /// First unacknowledged packet
     snd_una: u32,
@@ -278,9 +266,6 @@ pub struct Kcp<Output> {
     /// Enable stream mode
     stream: bool,
 
-    /// Get conv from the next input call
-    input_conv: bool,
-
     pub output: KcpOutput<Output>,
 }
 
@@ -288,6 +273,7 @@ impl<Output> Debug for Kcp<Output> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Kcp")
             .field("conv", &self.conv)
+            .field("token", &self.token)
             .field("mtu", &self.mtu)
             .field("mss", &self.mss)
             .field("state", &self.state)
@@ -324,7 +310,6 @@ impl<Output> Debug for Kcp<Output> {
             .field("fastlimit", &self.fastlimit)
             .field("nocwnd", &self.nocwnd)
             .field("stream", &self.stream)
-            .field("input_conv", &self.input_conv)
             .finish()
     }
 }
@@ -349,10 +334,10 @@ impl<Output> Kcp<Output> {
     fn construct(conv: u32, token: u32, output: Output, stream: bool) -> Self {
         Kcp {
             conv,
+            token,
             snd_una: 0,
             snd_nxt: 0,
             rcv_nxt: 0,
-            token,
             ts_probe: 0,
             probe_wait: 0,
             snd_wnd: KCP_WND_SND,
@@ -392,8 +377,7 @@ impl<Output> Kcp<Output> {
             nocwnd: false,
             xmit: 0,
             dead_link: KCP_DEADLINK,
-
-            input_conv: false,
+            
             output: KcpOutput(output),
         }
     }
@@ -663,18 +647,6 @@ impl<Output> Kcp<Output> {
         self.move_buf();
     }
 
-    /// Get `conv` from the next `input` call
-    #[inline]
-    pub fn input_conv(&mut self) {
-        self.input_conv = true;
-    }
-
-    /// Check if Kcp is waiting for the next input
-    #[inline]
-    pub fn waiting_conv(&self) -> bool {
-        self.input_conv
-    }
-
     /// Set `conv` value
     #[inline]
     pub fn set_conv(&mut self, conv: u32) {
@@ -685,6 +657,18 @@ impl<Output> Kcp<Output> {
     #[inline]
     pub fn conv(&self) -> u32 {
         self.conv
+    }
+
+    /// Set `token` value
+    #[inline]
+    pub fn set_token(&mut self, token: u32) {
+        self.token = token;
+    }
+
+    /// Get `token`
+    #[inline]
+    pub fn token(&self) -> u32 {
+        self.token
     }
 
     /// Call this when you received a packet from raw connection
@@ -711,19 +695,18 @@ impl<Output> Kcp<Output> {
         while buf.remaining() >= KCP_OVERHEAD as usize {
             let conv = buf.get_u32_le();
             if conv != self.conv {
-                // This allows getting conv from this call, which allows us to allocate
-                // conv from the server side.
-                if self.input_conv {
-                    debug!("input conv={} updated, original conv={}", conv, self.conv);
-                    self.conv = conv;
-                    self.input_conv = false;
-                } else {
-                    debug!("input conv={} expected conv={} not match", conv, self.conv);
-                    return Err(Error::ConvInconsistent(self.conv, conv));
-                }
+                debug!("input conv={} expected conv={} not match", conv, self.conv);
+                return Err(Error::ConvInconsistent(self.conv, conv));
             }
 
             let token = buf.get_u32_le();
+            if token != self.token {
+                debug!(
+                    "input token={} expected token={} not match",
+                    token, self.token
+                );
+                return Err(Error::TokenInconsistent(self.token, token));
+            }
             let cmd = buf.get_u8();
             let frg = buf.get_u8();
             let wnd = buf.get_u16_le();

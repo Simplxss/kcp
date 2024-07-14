@@ -6,6 +6,8 @@ use std::io::{self, ErrorKind};
 pub enum Error {
     #[error("conv inconsistent, expected {0}, found {1}")]
     ConvInconsistent(u32, u32),
+    #[error("token inconsistent, expected {0}, found {1}")]
+    TokenInconsistent(u32, u32),
     #[error("invalid mtu {0}")]
     InvalidMtu(usize),
     #[error("invalid segment size {0}")]
@@ -45,6 +47,7 @@ impl From<Error> for io::Error {
     fn from(err: Error) -> io::Error {
         let kind = match err {
             Error::ConvInconsistent(..) => ErrorKind::Other,
+            Error::TokenInconsistent(..) => ErrorKind::Other,
             Error::InvalidMtu(..) => ErrorKind::Other,
             Error::InvalidSegmentSize(..) => ErrorKind::Other,
             Error::InvalidSegmentDataSize(..) => ErrorKind::Other,

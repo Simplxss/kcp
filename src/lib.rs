@@ -15,7 +15,7 @@ pub mod prelude {
 }
 
 pub use error::Error;
-pub use kcp::{get_conv, get_token, get_sn, set_conv, Kcp, KCP_OVERHEAD};
+pub use kcp::{get_conv, get_token, Kcp, KCP_OVERHEAD};
 
 /// KCP result
 pub type KcpResult<T> = Result<T, Error>;
