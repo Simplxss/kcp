@@ -8,6 +8,8 @@ pub enum Error {
     ConvInconsistent(u32, u32),
     #[error("token inconsistent, expected {0}, found {1}")]
     TokenInconsistent(u32, u32),
+    #[error("session not found, conv {0}, token {1}")]
+    SessionNotFound(u32, u32),
     #[error("invalid mtu {0}")]
     InvalidMtu(usize),
     #[error("invalid segment size {0}")]
@@ -32,8 +34,6 @@ pub enum Error {
     UserBufTooBig,
     #[error("user's recv buffer is too small")]
     UserBufTooSmall,
-    #[error("token mismatch: {0} != {1}")]
-    TokenMismatch(u32, u32),
 }
 
 fn make_io_error<T>(kind: ErrorKind, msg: T) -> io::Error
@@ -48,6 +48,7 @@ impl From<Error> for io::Error {
         let kind = match err {
             Error::ConvInconsistent(..) => ErrorKind::Other,
             Error::TokenInconsistent(..) => ErrorKind::Other,
+            Error::SessionNotFound(..) => ErrorKind::Other,
             Error::InvalidMtu(..) => ErrorKind::Other,
             Error::InvalidSegmentSize(..) => ErrorKind::Other,
             Error::InvalidSegmentDataSize(..) => ErrorKind::Other,
@@ -58,7 +59,6 @@ impl From<Error> for io::Error {
             Error::UnsupportedCmd(..) => ErrorKind::Other,
             Error::UserBufTooBig => ErrorKind::Other,
             Error::UserBufTooSmall => ErrorKind::Other,
-            Error::TokenMismatch(_, _) => ErrorKind::Other,
         };
 
         make_io_error(kind, err)

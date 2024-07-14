@@ -377,7 +377,7 @@ impl<Output> Kcp<Output> {
             nocwnd: false,
             xmit: 0,
             dead_link: KCP_DEADLINK,
-            
+
             output: KcpOutput(output),
         }
     }
@@ -731,10 +731,6 @@ impl<Output> Kcp<Output> {
                     debug!("input cmd={} unrecognized", cmd);
                     return Err(Error::UnsupportedCmd(cmd));
                 }
-            }
-
-            if token != self.token {
-                return Err(Error::TokenMismatch(token, self.token));
             }
 
             self.rmt_wnd = wnd;
